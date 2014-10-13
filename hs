@@ -119,7 +119,7 @@ parse_cmd() {
       eval "v_echo 'i $header_main_L $c_type $header_main_R' $output"
       eval "v_echo 'w $header_bot $c_cmd' $output"
       if [[ "$print_screen" -gt 0 ]];then # Run it or print it?
-        echo "$c_cmd"
+        echo "$c_cmd $output"
       else
         eval "$c_cmd 2>/dev/null|tr '\t' ' ' $output"
         e_check $? $c_type
@@ -263,82 +263,85 @@ exit 0
   # If os is blank, the command should apply to all POSIX systems
   # Else, narrow down as approriate aka Linux,BSD or Debian or Ubuntu-13
   # Parser does NOT like single quotes, something awk needs, so lots of cuts instead
+  # If you have a simple test []&&|| be sure to add "$output" to the first test block
 << EoF
 _DATA_
-find-uid::find / -perm +4000 -uid 0:
-hw-cpu::cat /proc/cpuinfo:
-hw-dmi::dmidecode|grep -i "ser\|chas\|manu\|prod\|uuid"|sort -u:
-hw-drives-df::df -h:
-hw-drives-fdisk::fdisk -l:
-hw-drives-fstab::cat /etc/fstab:
-hw-drives-fstab-uuid::for x in \$(grep "^UUID" /etc/fstab|cut -d" " -f1|cut -d= -f2);do echo -n "UUID $x = ";blkid -U $x;done:
-hw-drives-lvm::for x in pvdisplay vgdisplay lvdisplay;do echo $x;$x;line;done:
-hw-drives-mount::mount:
-hw-drives-proc::cat /proc/mounts:
-hw-export::cat /etc/exports:
-hw-lshw::lshw -quiet:
-hw-mem::cat /proc/meminfo:
-hw-mem::free -m:
-hw-pci::lspci -v:
-hw-usb::lsusb -v:
-id-getpid::ps -ef|grep $$|grep -v grep:
-id-getuid::id:
-id-pwd::pwd:
-id-path::echo $PATH:
-id-time-date::date:
-id-time-hwclock::for x in -r --localtime;do echo "hwclock $x";hwclock $x;done:
-id-time-timezone:debian:cat /etc/timezone:
-id-uptime::uptime:
-log-audit:::
-net-arp::arp -a:
-net-config-net:bsd:cat /etc/network:
-net-config-my:bsd:cat /etc/my*:
-net-config-if:bsd:cat /etc/if*:
-net-config-interfaces:debian:cat /etc/network/interfaces:
-net-config-ifcfg:redhat:cat /etc/networking/syslog/if-cfg*:
-net-dns-resolv::cat /etc/resolv.conf:
-net-host::for x in \$(ls /etc/host*);do stat $x;e_check $? $x;echo;cat $x;line;done:
-net-hw::for x in \$(ifconfig -a|grep "encap"|cut -d" " -f1);do ethtool $x;ethtool -i $x;done:
-net-ip::ifconfig -a:
-net-ip::ip add:
-net-route::route -n:
-net-stat::netstat -auntp:
-os-hostname::hostname -f:
-os-initab:linux:sed '/^#/d;/^$/d' /etc/inittab:
-os-install-date::stat -c %z /var/log/installer/syslog:
-os-namefile::cat /etc/hostname*:
-os-runlevel:linux:runlevel:
-os-runlevel-who:linux:who -r:
-os-uname::uname -a:
-os-ver-issue::cat /etc/issue:
-os-ver-lsb::lsb_release -a:
-os-ver-proc::cat /proc/version:
-os-ver-rel::cat /etc/*release*:
-sec-fw-iptables::[[ \$(lsmod|grep ip_t) ]] && iptables -L -v || echo iptables not loaded:
-sec-fw-ufw:ubuntu:ufw numbered:
-sec-mac-aastatus:linux:aa-status: # App Armor
-sec-mac-selinux:linux:sestatus:
-sec-mac-tomoyo-proc:linux:cat /proc/css:
-sec-mac-tomoyo-log:linux:ls /var/log/tomoyo:
-start-crondirs::ls -Rl /etc/cron*:
-start-rcdirs::ls -Rl /etc/rc*:
-start-rclocal::cat /etc/rc.local:
-sw-config-sshd::sed '/^#/d;/^$/d' /etc/ssh/sshd_config:
-sw-install-dpkg:debian:dpkg -l:
-sw-install-pacman:arch:pacman -Qe:
-sw-install-pkginfo:freebsd:pkg_info:
-sw-install-pkginfo:solaris,sunos:pkginfo -l:
-sw-install-pkgtool:slackware:pkgtool:
-sw-install-rpm:redhat:rpm -qa:
-sw-running::ps -ef:
-sw-running:linux:pstree -A -d:
-user-home::ls -l /home:
-user-last::last:
-user-passwd::cat /etc/passwd:
-user-status::passwd -a -S:
-user-sudoers::sed "/^ *$/d\;/^#/d" /etc/sudoers:
-user-sudo-group::grep "^wheel\\|^sudo\\|^admin" /etc/group:
-user-w::w:
+find.uid::find / -perm +4000 -uid 0:
+find.writable.dir::find / -writable -type d:
+find.writable.etc::find /etc/ -writable:
+hw.cpu::cat /proc/cpuinfo:
+hw.dmi::dmidecode|grep -i "ser\|chas\|manu\|prod\|uuid"|sort -u:
+hw.drives.df::df -h:
+hw.drives.fdisk::fdisk -l:
+hw.drives.fstab::cat /etc/fstab:
+hw.drives.fstab-uuid::for x in \$(grep "^UUID" /etc/fstab|cut -d" " -f1|cut -d= -f2);do echo -n "UUID $x = ";blkid -U $x;done:
+hw.drives.lvm::for x in pvdisplay vgdisplay lvdisplay;do echo $x;$x;line;done:
+hw.drives.mount::mount:
+hw.drives.proc::cat /proc/mounts:
+hw.export::cat /etc/exports:
+hw.lshw::lshw -quiet:
+hw.mem::cat /proc/meminfo:
+hw.mem::free -m:
+hw.pci::lspci -v:
+hw.usb::lsusb -v:
+id.getpid::ps -ef|grep $$|grep -v grep:
+id.getuid::id:
+id.pwd::pwd:
+id.path::echo $PATH:
+id.time.date::date:
+id.time.hwclock::for x in -r --localtime;do echo "hwclock $x";hwclock $x;done:
+id.time.timezone:debian:cat /etc/timezone:
+id.upime::uptime:
+log.audit:::
+net.arp::arp -a:
+net.config.net:bsd:cat /etc/network:
+net.config.my:bsd:cat /etc/my*:
+net.config.if:bsd:cat /etc/if*:
+net.config.interfaces:debian:cat /etc/network/interfaces:
+net.config.ifcfg:redhat:cat /etc/networking/syslog/if-cfg*:
+net.dns.resolv::cat /etc/resolv.conf:
+net.host::for x in \$(ls /etc/host*);do stat $x;e_check $? $x;echo;cat $x;line;done:
+net.hw::for x in \$(ifconfig -a|grep "encap"|cut -d" " -f1);do ethtool $x;ethtool -i $x;done:
+net.ip::ifconfig -a:
+net.ip::ip add:
+net.route::route -n:
+net.stat::netstat -auntp:
+os.hostname::hostname -f:
+os.initab:linux:sed '/^#/d;/^$/d' /etc/inittab:
+os.install-date::stat -c %z /var/log/installer/syslog:
+os.namefile::cat /etc/hostname*:
+os.runlevel:linux:runlevel:
+os.runlevel-who:linux:who -r:
+os.uname::uname -a:
+os.ver.issue::cat /etc/issue:
+os.ver.lsb::lsb_release -a:
+os.ver.proc::cat /proc/version:
+os.ver.rel::cat /etc/*release*:
+sec.fw.iptables::[[ \$(lsmod|grep ip_t) ]] && iptables -L -v $output || echo iptables not loaded:
+sec.fw.ufw:ubuntu:ufw numbered:
+sec.mac.aastatus:linux:aa-status: # App Armor
+sec.mac.selinux:linux:sestatus:
+sec.mac.tomoyo-proc:linux:cat /proc/css:
+sec.mac.tomoyo-log:linux:ls /var/log/tomoyo:
+start.crondirs::ls -Rl /etc/cron*:
+start.rcdirs::ls -Rl /etc/rc*:
+start.rclocal::cat /etc/rc.local:
+sw.config.sshd::sed "/^#/d;/^$/d" /etc/ssh/sshd_config:
+sw.install.dpkg:debian:dpkg -l:
+sw.install.pacman:arch:pacman -Qe:
+sw.install.pkginfo:freebsd:pkg_info:
+sw.install.pkginfo:solaris,sunos:pkginfo -l:
+sw.install.pkgtool:slackware:pkgtool:
+sw.install.rpm:redhat:rpm -qa:
+sw.running::ps -ef:
+sw.running:linux:pstree -A -d:
+user.home::ls -l /home:
+user.last::last:
+user.passwd::cat /etc/passwd:
+user.status::passwd -a -S:
+user.sudoers::sed "/^ *$/d\;/^#/d" /etc/sudoers:
+user.sudo.group::grep "^wheel\\|^sudo\\|^admin" /etc/group:
+user.w::w:
 _END_
 EoF
 
