@@ -1,8 +1,10 @@
 #!/bin/bash 
 #!/usr/bin/env bash
-# Host survey script for Unix systems, though mainly Linux
-# Used to identify all sort of things on a box
+# A host survey script for Unix systems, though tested on Linux
+# Used to identify all sorts of things on a box with the help of
+# GNU core utils like grep, sed, cat, tr & others.
 # Ran locally on a system. Select a module, category or all.
+# Can also print out the commands for other systems vs running them.
 
 main() {
   # Main loop to start it all
@@ -16,11 +18,11 @@ main() {
 
 initialize() {
   # Setup shop
-  version='0.9.2 OCTOBERFEST ::Qry3v@vna~*'
+  version='0.9.3 OCTOBERFEST ::Qry3v@vna~*'
   verbose=0
   color=1
   outfile=hs # for self-replication print
-  output="" # Default STDOUT redirect
+  stdout="" # Default STDOUT redirect
   key=""
   def_out="out_$(date +%Y%m%d%H%M).txt" # Default report name
   tgt_os=""
@@ -45,7 +47,7 @@ parse_input() {
       -n|--na*) sanitize name $2;; # Name for report header
       --no-color) color=0;; # Turn off pretty colors
       --os) sanitize tgt_os $2;; # Select alternate OS
-      -o|--out*) sanity_check ${2-$def_out};output=">>${2-$def_out}";color=0;; # for survey saved output
+      -o|--out*) sanity_check ${2-$def_out};stdout=">>${2-$def_out}";color=0;; # for survey saved output
       -p|--print) ((print_screen++));; # print commands to screen instead of running them
       --print-self) print_self $2;; # Self replicate?
       -q*|--q*) verbose=-1;; # Shhh...
@@ -54,7 +56,7 @@ parse_input() {
     esac
     shift
   done
-  v_echo "d verbose:[$verbose] key:[$key] name:[$name] out:[$output] color:[$color]"
+  v_echo "d verbose:[$verbose] key:[$key] name:[$name] out:[$stdout] color:[$color]"
 }
 
 sanity_check() {
@@ -84,12 +86,12 @@ trigger() {
   # Keep track of the start time and total time
   if [ "$1" == "start" ];then
     t_start="$(date +%s)"
-    eval "v_echo 'i ### starting host survey on $(hostname) by $name at $(date) ###' $output"
+    eval "v_echo 'i ### starting host survey on $(hostname) by $name at $(date) ###' $stdout"
   else
     t_diff=$(($(date +%s)-$t_start))
     t_start=
-    eval "v_echo 'i ### completed host survey on $(hostname) at $(date) ###' $output"
-    eval "v_echo 'i ### $(($t_diff/60)) minutes and $(($t_diff%60)) seconds elapsed.' $output"
+    eval "v_echo 'i ### completed host survey on $(hostname) at $(date) ###' $stdout"
+    eval "v_echo 'i ### $(($t_diff/60)) minutes and $(($t_diff%60)) seconds elapsed.' $stdout"
   fi
 }
 
@@ -115,13 +117,13 @@ parse_cmd() {
     c_type="${line[0]}";c_os="${line[1]}";c_cmd="${line[2]}"
     v_echo "d c_type:[$c_type] tgt_os:[$tgt_os] c_os:[$c_os] c_cmd:[$c_cmd]"
     if [[ "$tgt_os" == *$c_os* ]];then
-      eval "v_echo 'I $header_top' $output"
-      eval "v_echo 'i $header_main_L $c_type $header_main_R' $output"
-      eval "v_echo 'w $header_bot $c_cmd' $output"
+      eval "v_echo 'I $header_top' $stdout"
+      eval "v_echo 'i $header_main_L $c_type $header_main_R' $stdout"
+      eval "v_echo 'w $header_bot $c_cmd' $stdout"
       if [[ "$print_screen" -gt 0 ]];then # Run it or print it?
-        echo "$c_cmd $output"
+        echo "$c_cmd $stdout"
       else
-        eval "$c_cmd 2>/dev/null|tr '\t' ' ' $output"
+        eval "$c_cmd 2>/dev/null|tr '\t' ' ' $stdout"
         e_check $? $c_type
       fi
     fi
@@ -135,6 +137,7 @@ detect_os() {
     res="$(parse_cmd os)"
     case $(echo $res|tr [:upper:] [:lower:]) in
       arch*) tgt_os="linux/arch";;
+      *darwin*) tgt_os="bsd/osx";;
       *debian*) tgt_os="linux/debian";;
       *"red hat"*) tgt_os="linux/redhat";;
       *ubuntu*) tgt_os="linux/debian/ubuntu";;
@@ -214,12 +217,38 @@ line() {
   echo '-  - --------------------------------------------------------------- -  -'
 }
 
+logo() {
+  decode "IF8gICBfICAgICAgICAgICBfICAgX19fX18gICAgICAgICAgICAgICAgICAgICAgICAgICAgCnwg
+fCB8IHwgICAgICAgICB8IHwgLyAgX19ffCAgICAgICAgICAgICAgICAgICAgICAgICAgIAp8IHxf
+fCB8IF9fXyAgX19ffCB8X1wgYC0tLiBfICAgXyBfIF9fX18gICBfX19fXyBfICAgXyAKfCAgXyAg
+fC8gXyBcLyBfX3wgX198YC0tLiBcIHwgfCB8ICdfX1wgXCAvIC8gXyBcIHwgfCB8CnwgfCB8IHwg
+KF8pIFxfXyBcIHxfL1xfXy8gLyB8X3wgfCB8ICAgXCBWIC8gIF9fLyB8X3wgfApcX3wgfF8vXF9f
+Xy98X19fL1xfX1xfX19fLyBcX18sX3xffCAgICBcXy8gXF9fX3xcX18sIHwKICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIF9fLyB8CiAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHxfX18vCg=="
+}
+
+decode() {
+  # Try different decoders until we find a working one
+  decoder=(
+    'python -m base64 -d $1'
+    'openssl enc -a -d'
+    'base64 -d'
+  )
+  while [ "${#decoder[*]}" -gt 0 ];do
+      echo -e "$*"|eval "${decoder[${#decoder[*]}-1]}"
+    [ "$?" -eq 0 ] && break
+    unset decoder[${#decoder[*]}-1]
+  done
+}
+
 usage() {
   # Help page... helper function
 cat << E0F
+$(logo)
 $0 $version
 
-$(grep '^#' $0|grep -v '/bin/bash') 
+$(grep '^#' $0|grep -v '/bin/bash\|/bin/env') 
 
 USAGE: $0 <options>
 
@@ -227,8 +256,8 @@ OPTIONS:
       --			Stop the press, no more argument parsing please
       -h --help			This cruft...(help page)	
       -i --initial -1 -1st	Run basic identification commands
-      -k --key <word>		Sets module category to search, aka net or os-uname
-      -l --list			Lists modules available, category:os:command
+      -k --key <word>		Sets module category to search, aka net or id or os.uname
+      -l --list			Lists all modules available, category:os:command
       -n --name <name>		Sets name used in output of full survey report
       --no-color		Turn off the pretty colors :(
       --os <os>			Select OS architecture instead of autodetect.
@@ -236,12 +265,15 @@ OPTIONS:
 				  used with [-p] to print out the commands,
 				  when a remote system does not run bash.
       -o --out <file>		Sets the ouput file to save the report to,
-				  else it's to the screen (STDOUT)
+				  else it's to the screen (STDOUT). 
+				  If no file name given, this defaults to out_\$DateTime
       -p --print		Prints the commands to the screen instead of running them
+				  Useful for a quick copy/paste of a set of commands.
       --print-self		Prints this script in a format to easily copy
 				  then paste in a remote shell, minus the print-self function
       -q --quiet		Quiet, only print raw results, no info or headers (deal with it!)
       -v --verbose		Increases verbosity, a little more output like headers
+				  1x more headers, 2x exit codes, 3x debug mode
       -V --version		Prints versions and quits
 
 EXAMPLES:
@@ -263,12 +295,13 @@ exit 0
   # If os is blank, the command should apply to all POSIX systems
   # Else, narrow down as approriate aka Linux,BSD or Debian or Ubuntu-13
   # Parser does NOT like single quotes, something awk needs, so lots of cuts instead
-  # If you have a simple test []&&|| be sure to add "$output" to the first test block
+  # If you have a simple test []&&|| be sure to add "$stdout" to the first test block
 << EoF
 _DATA_
 find.uid::find / -perm +4000 -uid 0:
 find.writable.dir::find / -writable -type d:
 find.writable.etc::find /etc/ -writable:
+find.dirwalk::find /:
 hw.cpu::cat /proc/cpuinfo:
 hw.dmi::dmidecode|grep -i "ser\|chas\|manu\|prod\|uuid"|sort -u:
 hw.drives.df::df -h:
@@ -290,6 +323,7 @@ id.pwd::pwd:
 id.path::echo $PATH:
 id.time.date::date:
 id.time.hwclock::for x in -r --localtime;do echo "hwclock $x";hwclock $x;done:
+id.time.ntp.conf::sed "/^#/d;/^$/d" /etc/ntp.conf:
 id.time.timezone:debian:cat /etc/timezone:
 id.upime::uptime:
 log.audit:::
@@ -317,7 +351,7 @@ os.ver.issue::cat /etc/issue:
 os.ver.lsb::lsb_release -a:
 os.ver.proc::cat /proc/version:
 os.ver.rel::cat /etc/*release*:
-sec.fw.iptables::[[ \$(lsmod|grep ip_t) ]] && iptables -L -v $output || echo iptables not loaded:
+sec.fw.iptables::[[ \$(lsmod|grep ip_t) ]] && iptables -L -v $stdout || echo iptables not loaded:
 sec.fw.ufw:ubuntu:ufw numbered:
 sec.mac.aastatus:linux:aa-status: # App Armor
 sec.mac.selinux:linux:sestatus:
