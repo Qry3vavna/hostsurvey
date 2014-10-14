@@ -356,7 +356,7 @@ net.ip::ip add:
 net.route::route -n:
 net.stat::netstat -auntp:
 os.hostname::hostname -f:
-os.initab:linux:sed '/^#/d;/^$/d' /etc/inittab:
+os.initab:linux:sed "/^#/d;/^$/d" /etc/inittab:
 os.install-date::stat -c %z /var/log/installer/syslog:
 os.namefile::cat /etc/hostname*:
 os.runlevel:linux:runlevel:
