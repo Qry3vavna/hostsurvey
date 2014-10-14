@@ -29,9 +29,9 @@ initialize() {
   name="::Qry3v@vna~*" # Default reporter's name
   print_screen=0 # Don't print to screen, actually run the commands
   # Stuff that's printed out to make pretty...
-  header_top="#=====================-=====-===-==--=-=---=----------- --- -- - -  -   -"
-  header_main_L="#===============\ "
-  header_main_R=" ========------- -  -"
+  header_top="#==============================================================================#"
+  header_main_L="#=================\ "
+  header_main_R=" /=================#"
   header_bot="#================\_ "
 }
 
