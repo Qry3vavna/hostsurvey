@@ -287,14 +287,28 @@ EXAMPLES:
 	$0 -p -a freebsd -k os -q
 	Prints the raw OS detection commands for FreeBSD architecture to screen to copy and paste
 
+        $0 --out ~/customer.report.txt --name AuditTeam12
+	Runs the full host survey and saves the result to the file ~/customer.report.txt
+
+LICENSE: Apache 2.0 :
+
+	Required:	- Include license and copyright notice
+			- State any changes made from this code
+
+        Permitted:	- Use commercially	- Grant patents
+			- Ditribute		- Use privately
+			- Modify		- Sublicense
+
+	Forbidden:	- Hold us liable
+			- Use trademark
 E0F
 exit 0
 }
 
   # The data is referenced with sed/grep
-  # Format:=>  category-subcategory:os,list:command
+  # Format:=>  category.subcategory:os,list:command
   # If os is blank, the command should apply to all POSIX systems
-  # Else, narrow down as approriate aka Linux,BSD or Debian or Ubuntu-13
+  # Else, narrow down as approriate aka Linux, BSD or Debian or Ubuntu-13
   # Parser does NOT like single quotes, something awk needs, so lots of cuts instead
   # If you have a simple test []&&|| be sure to add "$stdout" to the first test block
 << EoF
