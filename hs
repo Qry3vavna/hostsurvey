@@ -139,6 +139,7 @@ detect_os() {
       arch*) tgt_os="linux/arch";;
       *darwin*) tgt_os="bsd/osx";;
       *debian*) tgt_os="linux/debian";;
+      *freebsd*) tgt_os"bsd/freebsd";;
       *"red hat"*) tgt_os="linux/redhat";;
       *ubuntu*) tgt_os="linux/debian/ubuntu";;
     esac
