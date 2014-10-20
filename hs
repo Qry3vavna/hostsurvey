@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 #!/usr/bin/env bash
 # A host survey script for Unix systems, though tested on Linux
 # Used to identify all sorts of things on a box with the help of
@@ -18,7 +18,7 @@ main() {
 
 initialize() {
   # Setup shop
-  version='0.9.3 OCTOBERFEST ::Qry3v@vna~*'
+  version='0.9.4 OCTOBERFEST ::Qry3v@vna~*'
   verbose=0
   color=1
   outfile=hs # for self-replication print
@@ -30,9 +30,9 @@ initialize() {
   print_screen=0 # Don't print to screen, actually run the commands
   # Stuff that's printed out to make pretty...
   header_top="#==============================================================================#"
-  header_main_L="#=================\ "
-  header_main_R=" /=================#"
-  header_bot="#================\_ "
+  header_main_L="#=====================\ "
+  header_main_R=" /==#"
+  header_bot="#======================\_ "
 }
 
 parse_input() {
@@ -42,8 +42,8 @@ parse_input() {
       --) shift; break;; # User needs this madness to end
       -h*|--h*) usage;; # Hilfe mich
       -i*|--i*|-1*) identify;parse_cmd os;exit 0;; # Basic 1st run id and quit
-      -k*|--k*) [ -z $key ] && key="${2-os}" || key="$key\|${2-os}";; # Select a specific set of commands
-      -l*|--l*) echo "Listing modules";sed -n '/^_DATA/,/^_END/{/_DATA/b;/_END/b;p}' $0;exit 0;; # Show me the options
+      -k*|--k*) [ -z $key ] && key="^${2-os}" || key="$key\|^${2-os}";; # Select a specific set of commands
+      -l*|--l*) echo "Listing modules";sed -n '/^_DATA/,/^_END/{/_DATA/d;/_END/d;p;}' $0;exit 0;; # Show me the options
       -n|--na*) sanitize name $2;; # Name for report header
       --no-color) color=0;; # Turn off pretty colors
       --os) sanitize tgt_os $2;; # Select alternate OS
@@ -127,8 +127,8 @@ parse_cmd() {
         e_check $? $c_type
       fi
     fi
-  done< <(sed -n '/^_DATA/,/^_END/{/_DATA/b;/_END/b;p}' $0|grep "^$key")
-  e_check $? parse_cmd loop
+  done< <(sed -n '/^_DATA/,/^_END/{/_DATA/d;/_END/d;p;}' $0|grep "$key")
+  e_check "$? parse_cmd loop"
 }
 
 detect_os() {
@@ -136,15 +136,34 @@ detect_os() {
   if [[ -z "$tgt_os" ]];then # os not yet given as argument, detect it
     res="$(parse_cmd os)"
     case $(echo $res|tr [:upper:] [:lower:]) in
+      *aix*) tgt_os="sysv/bsd/aix";;
+      *android*) tgt_os="linux/android";;
       arch*) tgt_os="linux/arch";;
+      *centos*) tgt_os="linux/redhat/centos";;
+      *cygwin*) tgt_os="linux/cygwin";; # Windows
       *darwin*) tgt_os="bsd/osx";;
       *debian*) tgt_os="linux/debian";;
-      *freebsd*) tgt_os"bsd/freebsd";;
+      *dragonfly*) tgt_os="bsd/dragonfly";;
+      *fedora*) tgt_os="linux/redhat/fedora";;
+      *freebsd*) tgt_os="bsd/freebsd";;
+      *gentoo*) tgt_os="linux/gentoo";;
+      *hp-ux*) tgt_os="sysv/bsd/hp-ux";;
+      *knoppix*) tgt_os="linux/debian/knoppix";;
+      *mach*|*hurd*) tgt_os="bsd/gnu/hurd";;
+      *mandrake*) tgt_os="linux/redhat/mandrake";;
+      *netbsd*) tgt_os="bsd/netbsd";;
+      *openbsd*) tgt_os="bsd/openbsd";;
       *"red hat"*) tgt_os="linux/redhat";;
+      *slackware*) tgt_os="linux/slackware";;
+      *solaris*) tgt_os="sysv/bsd/solaris";;
+      *sunos*) tgt_os="bsd/sunos";;
+      *suse*) tgt_os="linux/slackware/suse";;
+      *true64*) tgt_os="bsd/hp-alpha";;
       *ubuntu*) tgt_os="linux/debian/ubuntu";;
+      *linux*) tgt_os="linux";; # Artificial fall through
     esac
   else
-    v_echo "I Manually selected $tgt_os as OS"
+    v_echo "Manually selected $tgt_os as OS"
   fi
   v_echo "d tgt_os:[$tgt_os]"
 }
@@ -158,7 +177,7 @@ print_self() {
   outfile=${1-$outfile}
   v_echo "I Printing self to $outfile"
   echo "echo '#!/bin/bash' >$outfile"
-  sed "/^#/d;/^$/d;/print_self()/,/^}/d;s/['\"]/\\\&/g;s/^/echo $'/g;s/$/'>>$outfile/g" <$0
+  sed "/^#/d;/^$/d;/print_self()/,/^}/d;s/['\"]/\\\&/g;s/^/echo $'/g;s/$/'>>$outfile/g;" <$0
   echo "chmod +x $outfile;./$outfile"
   exit 0
 }
@@ -170,19 +189,19 @@ v_echo() {
   if [[ "$color" -gt 0 ]];then # Screen then color, else nope
     case $verbose in
       0|1|2|3)case $type in
-        f) echo -e "\e[1;31m[-] $msg\e[0m";; # fail/red
-        i) echo -e "\e[1;34m[*] $msg\e[0m";; # info/blue
+        f) echo -e "\e[1;31m[-]\e[0m $msg";; # fail/red
+        i) echo -e "\e[1;34m[*]\e[0m $msg";; # info/blue
         r) echo -e "$msg";; # raw/no formatting
         esac;;&
       1|2|3)case $type in
-        w) echo -e "\e[1;33m[!] $msg\e[0m";; # warn/yellow
+        w) echo -e "\e[1;33m[!]\e[0m $msg";; # warn/yellow
         esac;;&
       2|3)case $type in
         I) echo -e "\e[1;34m[*] $msg\e[0m";; # Extra level 3 info/blue
-        s) echo -e "\e[1;32m[+] $msg\e[0m";; # success/green
+        s) echo -e "\e[1;32m[+]\e[0m $msg";; # success/green
         esac;;&
       3)case $type in
-        d) echo -e "\e[1;35m[d] $msg\e[0m";; # debug/purple
+        d) echo -e "\e[1;35m[d]\e[0m $msg";; # debug/purple
         esac;;
     esac
   else
@@ -204,13 +223,47 @@ v_echo() {
 
 e_check() {
   # Error checking helper function
-  err="$(echo $1|cut -d' ' -f1)";shift
-  v_echo "d e_check $err $*"
+  err="$(echo $1|cut -d' ' -f1)"
+  emsg="$(echo $1|cut -d' ' -f2-)"
+  v_echo "d e_check $err $emsg"
   if [ "$err" -gt 0 ];then
-    v_echo "f ERROR: $err with $*"
+    v_echo "f [ERROR]: $err with $emsg"
   else
-    v_echo "s GO${err}D: with $*"
+    v_echo "s [GO${err}D]: with $emsg"
   fi  
+}
+
+f_check() {
+  # File checking helper function
+  # f_check File Checks Action
+  # Check are comma separated tests, see "man test", zbs: e (exist), d (directory)
+  # Action is command to run against file if it past the test, bvb: cat, sed
+  f="$1";c=( $(echo "$2"|tr ',' ' ') );shift;shift;a="$*"
+  v_echo "d f_check File:$f Checks:$c Action:$a"
+  while [ "${#c[*]}" -gt 0 ];do # Loop through 2nd argument which are single letter tests
+    check="${c[${#c[*]}-1]}"
+    case $check in
+      d) e="a directory";;
+      e) e="exists";;
+      f) e="a file";;
+      x) e="executable";;
+      z) e="zeroed";;
+      *) e="$check";;
+    esac
+#    check=$(man [|grep -i -- "true if"|grep -w -- "-${c[${#c[*]}-1]}"|head -1|tr -s " \t"|cut -d" " -f4-) # Only works on some Linux
+    if [ ! "-$check" $f ];then
+      e_check "1 File $f $e [ No ]"
+      [ "${a:0:1}" == '!' ] && "${a:1}" # Were we given a fail action?
+      return 1
+    else
+      v_echo "s File $f $e [ Yes ]"
+      if [ "$a" != "" ] -a [ "${a:0:1}" != '!' ];then
+        eval "$a $f $stdout" # Run action again given file
+        e_check "$? $a $f"
+      fi
+    fi
+    unset c[${#c[*]}-1] # Iterate through list, pop element
+  done
 }
 
 line() {
@@ -241,6 +294,28 @@ decode() {
     [ "$?" -eq 0 ] && break
     unset decoder[${#decoder[*]}-1]
   done
+}
+
+strip_cat() {
+  # Strip cat helper function, displays files minus comments or blank lines
+  # Optional tail to cut down lines shown, defaults 1000 lines
+  f="$1";l="${2-1000}"
+  v_echo "d strip_cat File:$f Line:$l"
+  f_check $f e !exit
+  sed "/^#/d;/^$/d;" $f | tail -${l}
+  e_check $? strip_cat $f
+}
+
+stat_cat() {
+  # stat cat helper function, prints stats info, then calls strip_cat
+  # Arg 1=file, 2=line-count
+  f="$1";l="$2"
+  v_echo "d stat_cat File:$f Line:$l"
+  f_check $f e stat # Does the file exist? If so run stat
+  if [[ $? -eq 0 ]];then
+    line
+    strip_cat $f $l
+  fi
 }
 
 usage() {
@@ -337,11 +412,14 @@ id.getuid::id:
 id.pwd::pwd:
 id.path::echo $PATH:
 id.time.date::date:
-id.time.hwclock::for x in -r --localtime;do echo "hwclock $x";hwclock $x;done:
-id.time.ntp.conf::sed "/^#/d;/^$/d" /etc/ntp.conf:
-id.time.timezone:debian:cat /etc/timezone:
+id.time.hwclock:linux:for x in -r --localtime;do echo "hwclock $x";hwclock $x;done:
+id.time.ntp.conf::strip_cat /etc/ntp.conf:
+id.time.timezone:debian:strip_cat /etc/timezone:
+id.time.test::strip_cat /etc/foobar:
 id.upime::uptime:
-log.audit:::
+log.auth::stat_cat /var/log/auth.log 10:
+log.msg::stat_cat /var/log/messages 25:
+log.sec::stat_cat /var/log/secure 10:
 net.arp::arp -a:
 net.config.net:bsd:cat /etc/network:
 net.config.my:bsd:cat /etc/my*:
@@ -355,8 +433,9 @@ net.ip::ifconfig -a:
 net.ip::ip add:
 net.route::route -n:
 net.stat::netstat -auntp:
+os.boot:linux:cat /proc/cmdline:
 os.hostname::hostname -f:
-os.initab:linux:sed "/^#/d;/^$/d" /etc/inittab:
+os.initab.fcheck:linux:strip_cat /etc/inittab:
 os.install-date::stat -c %z /var/log/installer/syslog:
 os.namefile::cat /etc/hostname*:
 os.runlevel:linux:runlevel:
@@ -364,6 +443,7 @@ os.runlevel-who:linux:who -r:
 os.uname::uname -a:
 os.ver.issue::cat /etc/issue:
 os.ver.lsb::lsb_release -a:
+os.ver.ostype::echo $OSTYPE:
 os.ver.proc::cat /proc/version:
 os.ver.rel::cat /etc/*release*:
 sec.fw.iptables::[[ \$(lsmod|grep ip_t) ]] && iptables -L -v $stdout || echo iptables not loaded:
@@ -375,7 +455,7 @@ sec.mac.tomoyo-log:linux:ls /var/log/tomoyo:
 start.crondirs::ls -Rl /etc/cron*:
 start.rcdirs::ls -Rl /etc/rc*:
 start.rclocal::cat /etc/rc.local:
-sw.config.sshd::sed "/^#/d;/^$/d" /etc/ssh/sshd_config:
+sw.config.sshd::sed "/^#/d;/^$/d;" /etc/ssh/sshd_config:
 sw.install.dpkg:debian:dpkg -l:
 sw.install.pacman:arch:pacman -Qe:
 sw.install.pkginfo:freebsd:pkg_info:
@@ -388,7 +468,7 @@ user.home::ls -l /home:
 user.last::last:
 user.passwd::cat /etc/passwd:
 user.status::passwd -a -S:
-user.sudoers::sed "/^ *$/d\;/^#/d" /etc/sudoers:
+user.sudoers::sed "/^ *$/d\;/^#/d;" /etc/sudoers:
 user.sudo.group::grep "^wheel\\|^sudo\\|^admin" /etc/group:
 user.w::w:
 _END_
