@@ -8,7 +8,7 @@
 \_| |_/\___/|___/\__\____/ \__,_|_|    \_/ \___|\__, |
                                                  __/ |
                                                 |___/
-./hs 0.9.3 OCTOBERFEST ::Qry3v@vna~*
+./hs 0.9.4 OCTOBERFEST ::Qry3v@vna~*
 </pre>
 
 A host survey script for Unix systems, though tested on Linux
