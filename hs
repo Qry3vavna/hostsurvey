@@ -5,6 +5,7 @@
 # GNU core utilities like grep, sed, cat, tr & others.
 # Ran locally on a system, optionally select a subset of commands.
 # Can also print out the commands for other systems vs running them.
+# Requires Bash v4+ for now, due to some of the methods used.
 
 main() {
   # Main loop to start it all
@@ -18,8 +19,9 @@ main() {
 
 initialize() {
   # Setup shop
-  version='0.9.4 OCTOBERFEST ::Qry3v@vna~*'
+  version='0.9.5 OCTOBERFEST ::Qry3v@vna~*'
   verbose=0
+  identify=0
   color=1
   outfile=hs # for self-replication print
   stdout="" # Default STDOUT redirect
@@ -41,12 +43,12 @@ parse_input() {
     case $1 in
       --) shift; break;; # User needs this madness to end
       -h*|--h*) usage;; # Hilfe mich
-      -i*|--i*|-1*) identify;parse_cmd os;exit 0;; # Basic 1st run id and quit
+      -i*|--i*|-1*) ((identify++));; # Basic 1st run id and quit
       -k*|--k*) [ -z $key ] && key="^${2-os}" || key="$key\|^${2-os}";; # Select a specific set of commands
       -l*|--l*) echo "Listing modules";sed -n '/^_DATA/,/^_END/{/_DATA/d;/_END/d;p;}' $0;exit 0;; # Show me the options
       -n|--na*) sanitize name $2;; # Name for report header
       --no-color) color=0;; # Turn off pretty colors
-      --os) sanitize tgt_os $2;; # Select alternate OS
+      -O|--os|--op*) sanitize tgt_os $2;; # Select alternate OS
       -o|--out*) sanity_check ${2-$def_out};stdout=">>${2-$def_out}";color=0;; # for survey saved output
       -p|--print) ((print_screen++));; # print commands to screen instead of running them
       --print-self) print_self $2;; # Self replicate?
@@ -56,6 +58,9 @@ parse_input() {
     esac
     shift
   done
+  if [ "$identify" -gt 0 ];then
+      identify;parse_cmd '^id';exit 0 # Basic 1st run id and quit
+  fi
   v_echo "d verbose:[$verbose] key:[$key] name:[$name] out:[$stdout] color:[$color]"
 }
 
@@ -99,7 +104,7 @@ identify() {
   # Basic commands on 1st run, to ensure we can run commands...
   # Make sure PATH variable is set and has something useful in it
   # Check for basic tools & version (need GNU), then try and detect the OS
-  [ "$PATH" == "" ] && PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin' 
+  [ "$PATH" == "" ] && PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin'
   for tool in sed grep stat cat tr;do
     which $tool 2>&1 >/dev/null
     e_check $? locating tool $tool
@@ -137,39 +142,45 @@ parse_cmd() {
 
 detect_os() {
   # Try and detect the OS
-  if [[ -z "$tgt_os" ]];then # os not yet given as argument, detect it
-    res="$(parse_cmd os)"
-    case $(echo $res|tr [:upper:] [:lower:]) in
-      *aix*) tgt_os="sysv/bsd/aix";;
-      *android*) tgt_os="linux/android";;
-      arch*) tgt_os="linux/arch";;
-      *centos*) tgt_os="linux/redhat/centos";;
-      *cygwin*) tgt_os="linux/cygwin";; # Windows
-      *darwin*) tgt_os="bsd/osx";;
-      *debian*) tgt_os="linux/debian";;
-      *dragonfly*) tgt_os="bsd/dragonfly";;
-      *fedora*) tgt_os="linux/redhat/fedora";;
-      *freebsd*) tgt_os="bsd/freebsd";;
-      *gentoo*) tgt_os="linux/gentoo";;
-      *hp-ux*) tgt_os="sysv/bsd/hp-ux";;
-      *knoppix*) tgt_os="linux/debian/knoppix";;
-      *mach*|*hurd*) tgt_os="bsd/gnu/hurd";;
-      *mandrake*) tgt_os="linux/redhat/mandrake";;
-      *minix*) tgt_os="minix";;
-      *netbsd*) tgt_os="bsd/netbsd";;
-      *openbsd*) tgt_os="bsd/openbsd";;
-      *"red hat"*) tgt_os="linux/redhat";;
-      *slackware*) tgt_os="linux/slackware";;
-      *solaris*) tgt_os="sysv/bsd/solaris";;
-      *sunos*) tgt_os="bsd/sunos";;
-      *suse*) tgt_os="linux/slackware/suse";;
-      *true64*) tgt_os="bsd/hp-alpha";;
-      *ubuntu*) tgt_os="linux/debian/ubuntu";;
-      *linux*) tgt_os="linux";; # Artificial fall through
-    esac
+  if [[ -n "$tgt_os" ]];then # os not yet given as argument, detect it
+    v_echo "i Manually selected $tgt_os as OS"
+    res="$tgt_os"
   else
-    v_echo "Manually selected $tgt_os as OS"
+    res="$(parse_cmd os)"
   fi
+  case $(echo $res|tr [:upper:] [:lower:]) in
+    *aix*) tgt_os="sysv/bsd/aix";;
+    *android*) tgt_os="linux/android";;
+    arch*) tgt_os="linux/arch";;
+    *centos*) tgt_os="linux/redhat/centos";;
+    *cygwin*) tgt_os="linux/cygwin";; # Windows
+    *darwin*|*osx*) tgt_os="bsd/osx";;
+    *debian*) tgt_os="linux/debian";;
+    *dragonfly*) tgt_os="bsd/dragonfly";;
+    *fedora*) tgt_os="linux/redhat/fedora";;
+    *freebsd*) tgt_os="bsd/freebsd";;
+    *gentoo*) tgt_os="linux/gentoo";;
+    *hp-ux*) tgt_os="sysv/bsd/hp-ux";;
+    *knoppix*) tgt_os="linux/debian/knoppix";;
+    *mach*|*hurd*) tgt_os="bsd/gnu/hurd";;
+    *mandrake*) tgt_os="linux/redhat/mandrake";;
+    *mingw*) tgt_os="linux/mingw";; # Windows
+    *minix*) tgt_os="posix/minix";;
+    *netbsd*) tgt_os="bsd/netbsd";;
+    *openbsd*) tgt_os="bsd/openbsd";;
+    *openwrt*) tgt_os="linux/openwrt";;
+    *qnx*) tgt_os="posix/qnx";;
+    *"red hat"*) tgt_os="linux/redhat";;
+    *slackware*) tgt_os="linux/slackware";;
+    *solaris*) tgt_os="sysv/bsd/solaris";;
+    *sunos*) tgt_os="bsd/sunos";;
+    *suse*) tgt_os="linux/slackware/suse";;
+    *true64*) tgt_os="bsd/hp-alpha";;
+    *ubuntu*) tgt_os="linux/debian/ubuntu";;
+    *windows*) tgt_os="linux/win-bash";; # Windows
+    *linux*) tgt_os="linux";; # Artificial fall through
+  esac
+  v_echo "w Detected $tgt_os as OS"
   v_echo "d tgt_os:[$tgt_os]"
 }
 
@@ -235,7 +246,7 @@ e_check() {
     v_echo "f [ERROR]: $err with $emsg"
   else
     v_echo "s [GO${err}D]: with $emsg"
-  fi  
+  fi
 }
 
 f_check() {
@@ -255,15 +266,17 @@ f_check() {
       z) e="zeroed";;
       *) e="$check";;
     esac
-#    check=$(man [|grep -i -- "true if"|grep -w -- "-${c[${#c[*]}-1]}"|head -1|tr -s " \t"|cut -d" " -f4-) # Only works on some Linux
+  # check=$(man [|grep -i -- "true if"|grep -w -- "-${c[${#c[*]}-1]}"|head -1|tr -s " \t"|cut -d" " -f4-) # Only works on some Linux
     if [ ! "-$check" $f ];then
+      if [ "${a:0:1}" == '!' ];then
+        "${a:1}" $stdout # Were we given a fail action?
+      fi
       e_check "1 File $f $e [ No ]"
-      [ "${a:0:1}" == '!' ] && "${a:1}" # Were we given a fail action?
       return 1
     else
       v_echo "s File $f $e [ Yes ]"
-      if [ "$a" != "" ] -a [ "${a:0:1}" != '!' ];then
-        eval "$a $f $stdout" # Run action again given file
+      if [ "$a" != "" ] && [ "${a:0:1}" != '!' ];then
+        $a $f $stdout # Run action against given file
         e_check "$? $a $f"
       fi
     fi
@@ -329,24 +342,24 @@ cat << E0F
 $(logo)
 $0 $version
 
-$(grep '^#' $0|grep -v '/bin/bash\|/bin/env') 
+$(grep '^#' $0|grep -v '/bin/bash\|/bin/env')
 
 USAGE: $0 <options>
 
 OPTIONS:
       --			Stop the press, no more argument parsing please
-      -h --help			This cruft...(help page)	
-      -i --initial -1 -1st	Run basic identification commands
+      -h --help			This cruft...(help page)
+      -i --initial -1  		Run basic identification commands
       -k --key <word>		Sets module category to search, aka net or id or os.uname
       -l --list			Lists all modules available, category:os:command
       -n --name <name>		Sets name used in output of full survey report
       --no-color		Turn off the pretty colors :(
-      --os <os>			Select OS architecture instead of autodetect.
-				  Used to force an OS if autodetect fails, or 
+      -O --os <os>		Select OS architecture instead of autodetect.
+				  Used to force an OS if autodetect fails, or
 				  used with [-p] to print out the commands,
 				  when a remote system does not run bash.
       -o --out <file>		Sets the ouput file to save the report to,
-				  else it's to the screen (STDOUT). 
+				  else it's to the screen (STDOUT).
 				  If no file name given, this defaults to out_\$DateTime
       -p --print		Prints the commands to the screen instead of running them
 				  Useful for a quick copy/paste of a set of commands.
@@ -364,7 +377,7 @@ EXAMPLES:
 	$0 -k net
 	Run various network information commands and prints the results with headers
 
-	$0 -p -a freebsd -k os -q
+	$0 -p --os freebsd -k os -q
 	Prints the raw OS detection commands for FreeBSD architecture to screen to copy and paste
 
         $0 --out ~/customer.report.txt --name AuditTeam12
@@ -401,6 +414,7 @@ find.dirwalk::find /::
 hw.cpu::cat /proc/cpuinfo::
 hw.dmi::dmidecode|grep -i "ser\|chas\|manu\|prod\|uuid"|sort -u::
 hw.drives.df::df -h::
+hw.drives.du::du -h --max-depth=1 /::
 hw.drives.fdisk::fdisk -l::
 hw.drives.fstab::strip_cat /etc/fstab:cat /etc/fstab:
 hw.drives.fstab-uuid::for x in \$(grep "^UUID" /etc/fstab|cut -d" " -f1|cut -d= -f2);do echo -n "UUID $x = ";blkid -U $x;done::
@@ -413,14 +427,11 @@ hw.mem::cat /proc/meminfo::
 hw.mem::free -m::
 hw.pci::lspci -v::
 hw.usb::lsusb -v::
-id.getpid::ps -ef|grep $$|grep -v grep::
+id.time.date::date::
 id.getuid::id::
+id.getpid::ps -ef|grep $$|grep -v grep::
 id.pwd::pwd::
 id.path::echo $PATH::
-id.time.date::date::
-id.time.hwclock:linux:for x in -r --localtime;do echo "hwclock $x";hwclock $x;done::
-id.time.ntp.conf::strip_cat /etc/ntp.conf:cat /etc/ntp.conf:
-id.time.timezone:debian:strip_cat /etc/timezone:cat /etc/timezone:
 id.upime::uptime::
 log.auth::stat_cat /var/log/auth.log 10:tail -10 /var/log/auth.log:
 log.msg::stat_cat /var/log/messages 25:tail -25 /var/log/messages:
@@ -438,6 +449,8 @@ net.ip::ifconfig -a::
 net.ip::ip add::
 net.route::route -n::
 net.stat::netstat -auntp::
+os.banner.motd::strip_cat /etc/motd:cat /etc/motd:
+os.banner.issue::strip_cat /etc/issue:cat /etc/issue:
 os.boot:linux:cat /proc/cmdline::
 os.hostname::hostname -f::
 os.initab.fcheck:linux:strip_cat /etc/inittab:cat /etc/inittab:
@@ -445,21 +458,29 @@ os.install-date::stat -c %z /var/log/installer/syslog:
 os.namefile::strip_cat /etc/hostname*:cat /etc/hostname*:
 os.runlevel:linux:runlevel::
 os.runlevel-who:linux:who -r::
+os.start.crondirs::ls -Rl /etc/cron*::
+os.start.dmesg::dmesg::
+os.start.rcdirs::ls -Rl /etc/rc*::
+os.start.rclocal::strip_cat /etc/rc.local:cat /etc/rc.local:
 os.uname::uname -a::
 os.ver.issue::strip_cat /etc/issue:cat /etc/issue:
 os.ver.lsb::lsb_release -a::
 os.ver.ostype::echo $OSTYPE::
 os.ver.proc::cat /proc/version::
 os.ver.rel::strip_cat /etc/*release*:cat /etc/*release*:
-sec.fw.iptables::[[ \$(lsmod|grep ip_t) ]] && iptables -L -v $stdout || echo iptables not loaded::
+sec.fw.arptables::if [[ \$(lsmod|grep arpt) ]];then arptables -L -v -n $stdout;else echo arptables not loaded;fi::
+sec.fw.ebtables::if [[ \$(lsmod|grep ebta) ]];then ebtables -L $stdout;else echo ebtables not loaded;fi::
+sec.fw.iptables::if [[ \$(lsmod|grep ip_t) ]];then iptables -L -v -n $stdout;iptables -t nat -L -v -n $stdout;else echo iptables not loaded;fi::
+sec.fw.ip6tables::if [[ \$(lsmod|grep ip6) ]];then ip6tables -L -v -n $stdout;else echo ip6tables not loaded;fi::
+sec.fw.nftables::if [[ \$(lsmod|grep nf_t) ]];then nftables -L -v -n $stdout;else echo nftables not loaded;fi::
 sec.fw.ufw:ubuntu:ufw numbered::
 sec.mac.aastatus:linux:aa-status::# App Armor
 sec.mac.selinux:linux:sestatus::
 sec.mac.tomoyo-proc:linux:cat /proc/css::
 sec.mac.tomoyo-log:linux:ls /var/log/tomoyo::
-start.crondirs::ls -Rl /etc/cron*::
-start.rcdirs::ls -Rl /etc/rc*::
-start.rclocal::strip_cat /etc/rc.local:cat /etc/rc.local:
+sec.sw.acct::service acct status::
+sec.sw.tcpdump::ps -ef|grep -i tcpdump::
+sec.sw.snoop:solaris:ps -ef|grep -i snoop::
 sw.config.sshd::strip_cat /etc/ssh/sshd_config:cat /etc/ssh/sshd_config:
 sw.install.dpkg:debian:dpkg -l::
 sw.install.pacman:arch:pacman -Qe::
@@ -469,11 +490,20 @@ sw.install.pkgtool:slackware:pkgtool::
 sw.install.rpm:redhat:rpm -qa::
 sw.running::ps -ef::
 sw.running:linux:pstree -A -d::
+sw.running::service --status-all::
+sw.running::systemctl::
+time.date::date::
+time.hwclock:linux:for x in -r --localtime;do echo "hwclock $x";hwclock $x;done::
+time.ntp.conf::strip_cat /etc/ntp.conf:cat /etc/ntp.conf:
+time.ntp.ntpq::ntpq -pn::
+time.timezone:debian:strip_cat /etc/timezone:cat /etc/timezone:
 user.home::ls -l /home::
 user.last::last::
+user.lastlog:linux:lastlog::
+user.lastlogin:bsd:lastlogin::
 user.passwd::strip_cat /etc/passwd:cat /etc/passwd:
+user.shadow::strip_cat /etc/shadow:cat /etc/shadow:
 user.status::passwd -a -S::
-#user.sudoers::sed "/^ *$/d\;/^#/d;" /etc/sudoers:
 user.sudoers::strip_cat /etc/sudoers:cat /etc/sudoers:
 user.sudo.group::grep "^wheel\\|^sudo\\|^admin" /etc/group::
 user.w::w::
