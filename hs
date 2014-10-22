@@ -19,7 +19,7 @@ main() {
 
 initialize() {
   # Setup shop
-  version='0.9.5 OCTOBERFEST ::Qry3v@vna~*'
+  version='0.9.6 OCTOBERFEST ::Qry3v@vna~*'
   verbose=0
   identify=0
   color=1
@@ -320,7 +320,7 @@ strip_cat() {
   f="$1";l="${2-1000}"
   v_echo "d strip_cat File:$f Line:$l"
   f_check $f e !exit
-  sed "/^#/d;/^$/d;" $f | tail -${l}
+  sed "/^#/d;/^\;/d;/^$/d;" $f | tail -${l}
   e_check $? strip_cat $f
 }
 
@@ -429,7 +429,8 @@ hw.pci::lspci -v::
 hw.usb::lsusb -v::
 id.time.date::date::
 id.getuid::id::
-id.getpid::ps -ef|grep $$|grep -v grep::
+id.getpid::ps -ef|grep $$|grep -v grep|head -1|tr -s [\:space\:]::
+id.getpid.parent::ps -ef|grep \$(ps -ef|grep $$|tr -s [\:space\:]|cut -d" " -f3|head -1)|tr -s [\:space\:]::
 id.pwd::pwd::
 id.path::echo $PATH::
 id.upime::uptime::
@@ -455,22 +456,18 @@ os.boot:linux:cat /proc/cmdline::
 os.hostname::hostname -f::
 os.initab.fcheck:linux:strip_cat /etc/inittab:cat /etc/inittab:
 os.install-date::stat -c %z /var/log/installer/syslog:
-os.namefile::strip_cat /etc/hostname*:cat /etc/hostname*:
+os.namefile::cat /etc/hostname*::
 os.runlevel:linux:runlevel::
 os.runlevel-who:linux:who -r::
-os.start.crondirs::ls -Rl /etc/cron*::
-os.start.dmesg::dmesg::
-os.start.rcdirs::ls -Rl /etc/rc*::
-os.start.rclocal::strip_cat /etc/rc.local:cat /etc/rc.local:
 os.uname::uname -a::
 os.ver.issue::strip_cat /etc/issue:cat /etc/issue:
 os.ver.lsb::lsb_release -a::
 os.ver.ostype::echo $OSTYPE::
 os.ver.proc::cat /proc/version::
-os.ver.rel::strip_cat /etc/*release*:cat /etc/*release*:
+os.ver.rel::cat /etc/*release*::
 sec.fw.arptables::if [[ \$(lsmod|grep arpt) ]];then arptables -L -v -n $stdout;else echo arptables not loaded;fi::
 sec.fw.ebtables::if [[ \$(lsmod|grep ebta) ]];then ebtables -L $stdout;else echo ebtables not loaded;fi::
-sec.fw.iptables::if [[ \$(lsmod|grep ip_t) ]];then iptables -L -v -n $stdout;iptables -t nat -L -v -n $stdout;else echo iptables not loaded;fi::
+sec.fw.iptables::if [[ \$(lsmod|grep ip_t) ]];then for x in filter mangle nat raw;do echo "[*] Type\: $x";iptables -t $x -L -n -v;line;done;else echo iptables not loaded;fi::
 sec.fw.ip6tables::if [[ \$(lsmod|grep ip6) ]];then ip6tables -L -v -n $stdout;else echo ip6tables not loaded;fi::
 sec.fw.nftables::if [[ \$(lsmod|grep nf_t) ]];then nftables -L -v -n $stdout;else echo nftables not loaded;fi::
 sec.fw.ufw:ubuntu:ufw numbered::
@@ -481,23 +478,37 @@ sec.mac.tomoyo-log:linux:ls /var/log/tomoyo::
 sec.sw.acct::service acct status::
 sec.sw.tcpdump::ps -ef|grep -i tcpdump::
 sec.sw.snoop:solaris:ps -ef|grep -i snoop::
+start.crondirs::ls -Rl /etc/cron*::
+start.crontab::strip_cat /etc/crontab:cat /etc/crontab:
+start.dmesg::dmesg::
+start.rcdirs::ls -Rl /etc/rc*::
+start.rclocal::strip_cat /etc/rc.local:cat /etc/rc.local:
+start.init.start:redhat:chkconfig --list::
+start.systemd.start::systemctl list-unit-files --type=service::
+sw.config.samba::strip_cat /etc/samba/smb.conf:cat /etc/samba/smb.conf:
+sw.config.ssh::strip_cat /etc/ssh/ssh_config:cat /etc/ssh/ssh_config:
 sw.config.sshd::strip_cat /etc/ssh/sshd_config:cat /etc/ssh/sshd_config:
+sw.config.sysctl::strip_cat /etc/sysctl.conf:cat /etc/sysctl.conf:
 sw.install.dpkg:debian:dpkg -l::
 sw.install.pacman:arch:pacman -Qe::
 sw.install.pkginfo:freebsd:pkg_info::
 sw.install.pkginfo:solaris,sunos:pkginfo -l::
 sw.install.pkgtool:slackware:pkgtool::
 sw.install.rpm:redhat:rpm -qa::
+sw.kernel.lsmod::for x in \$(lsmod|cut -d" " -f1);do echo "[*] $x";modinfo $x;line;done::
 sw.running::ps -ef::
 sw.running:linux:pstree -A -d::
-sw.running::service --status-all::
-sw.running::systemctl::
+sw.running.init.services::service --status-all 2>&1|grep "\+\\|run"::
+sw.running.systemd.services::systemctl::
 time.date::date::
 time.hwclock:linux:for x in -r --localtime;do echo "hwclock $x";hwclock $x;done::
 time.ntp.conf::strip_cat /etc/ntp.conf:cat /etc/ntp.conf:
 time.ntp.ntpq::ntpq -pn::
 time.timezone:debian:strip_cat /etc/timezone:cat /etc/timezone:
 user.home::ls -l /home::
+user.history::for x in \$(cut -d\: -f6 </etc/passwd|sort -u);do if [[ -e "$x/.bashrc" ]]||[[ -e "$x/.profile" ]];then echo [*] $x;cat $x/.*history;line;fi;done::
+user.ssh.authorizedkeys::for x in \$(cut -d\: -f6 </etc/passwd|sort -u);do if [[ -d "$x/.ssh" ]];then echo [*] $x;ls -la $x/.ssh;line;cat $x/.ssh/authorized_keys;line;fi;done::
+user.ssh.privkeys::find / -regex ".*\\(id_dsa\\|id_ecdsa\\|id_rsa\\)" -exec echo "[*]" {} \\; -exec stat {} \\; -exec cat {} \\;::
 user.last::last::
 user.lastlog:linux:lastlog::
 user.lastlogin:bsd:lastlogin::
