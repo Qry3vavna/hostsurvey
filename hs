@@ -205,19 +205,19 @@ v_echo() {
   if [[ "$color" -gt 0 ]];then # Screen then color, else nope
     case $verbose in
       0|1|2|3)case $type in
-        f) echo -e "\e[1;31m[-]\e[0m $msg";; # fail/red
-        i) echo -e "\e[1;34m[*]\e[0m $msg";; # info/blue
+        f) echo -e "\1Xb[01;31m[-]\1Xb[0m $msg";; # fail/red
+        i) echo -e "\1Xb[01;34m[*]\1Xb[0m $msg";; # info/blue
         r) echo -e "$msg";; # raw/no formatting
         esac;;&
       1|2|3)case $type in
-        w) echo -e "\e[1;33m[!]\e[0m $msg";; # warn/yellow
+        w) echo -e "\1Xb[01;33m[!]\1Xb[0m $msg";; # warn/yellow
         esac;;&
       2|3)case $type in
-        I) echo -e "\e[1;34m[*] $msg\e[0m";; # Extra level 3 info/blue
-        s) echo -e "\e[1;32m[+]\e[0m $msg";; # success/green
+        I) echo -e "\1Xb[01;34m[*] $msg\1Xb[0m";; # Extra level 3 info/blue
+        s) echo -e "\1Xb[01;32m[+]\1Xb[0m $msg";; # success/green
         esac;;&
       3)case $type in
-        d) echo -e "\e[1;35m[d]\e[0m $msg";; # debug/purple
+        d) echo -e "\1Xb[01;35m[d]\1Xb[0m $msg";; # debug/purple
         esac;;
     esac
   else
