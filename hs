@@ -19,7 +19,7 @@ main() {
 
 initialize() {
   # Setup shop
-  version='0.9.6 OCTOBERFEST ::Qry3v@vna~*'
+  version='0.9.7 OCTOBERFEST ::Qry3v@vna~*'
   verbose=0
   identify=0
   color=1
@@ -35,6 +35,7 @@ initialize() {
   header_main_L="#=====================\ "
   header_main_R=" /==#"
   header_bot="#======================\_ "
+  col_blu="";col_grn="";col_red="";col_pur="";col_yel="";end_col=""
 }
 
 parse_input() {
@@ -58,10 +59,16 @@ parse_input() {
     esac
     shift
   done
-  if [ "$identify" -gt 0 ];then
+  post_parse
+  v_echo "d verbose:[$verbose] key:[$key] name:[$name] out:[$stdout] color:[$color]"
+}
+
+post_parse() {
+  # Stuff to do after parsing input
+  # You too can add stuff here for one off macros
+  if [ "$identify" -gt 0 ];then # If -1 or -i was selected, do this: 
       identify;parse_cmd '^id';exit 0 # Basic 1st run id and quit
   fi
-  v_echo "d verbose:[$verbose] key:[$key] name:[$name] out:[$stdout] color:[$color]"
 }
 
 sanity_check() {
@@ -107,11 +114,12 @@ identify() {
   [ "$PATH" == "" ] && PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin'
   for tool in sed grep stat cat tr;do
     which $tool 2>&1 >/dev/null
-    e_check $? locating tool $tool
+    e_check "$? locating tool $tool"
     $(which $tool) --version 2>/dev/null|grep GNU 2>&1 >/dev/null
-    e_check $? tool $tool GNU check
+    e_check "$? tool $tool GNU check"
   done
   detect_os
+  set_colors
 }
 
 parse_cmd() {
@@ -133,19 +141,20 @@ parse_cmd() {
         fi
       else
         eval "$c_cmd 2>/dev/null|tr '\t' ' ' $stdout"
-        e_check $? $c_type
+        e_check "$? $c_type"
       fi
     fi
   done< <(sed -n '/^_DATA/,/^_END/{/_DATA/d;/_END/d;p;}' $0|grep "$key")
-  e_check "$? parse_cmd loop"
 }
 
 detect_os() {
   # Try and detect the OS
-  if [[ -n "$tgt_os" ]];then # os not yet given as argument, detect it
+  # Runs through the OS commands from the survey and save all the results,
+  # then searches for OS specific strings within the total results for a match.
+  if [[ -n "$tgt_os" ]];then # os given as argument, set it
     v_echo "i Manually selected $tgt_os as OS"
     res="$tgt_os"
-  else
+  else # os not yet given as argument, detect it
     res="$(parse_cmd os)"
   fi
   case $(echo $res|tr [:upper:] [:lower:]) in
@@ -198,54 +207,81 @@ print_self() {
   exit 0
 }
 
+set_colors(){
+  # Set colors helper function
+  # Sets bash echo colors dependent on the OS
+  col_select="$tgt_os"
+  [ "$color" == 0 ] && col_select="nocolor" 
+  case $col_select in
+    *osx*) col_blu="\1Xb[01;34m"
+           col_grn="\1Xb[01;32m" 
+           col_red="\1Xb[01;31m"
+           col_pur="\1Xb[01;35m"
+           col_yel="\1Xb[01;33m"
+           end_col="\1Xb[0m";;
+    *lin*) col_blu="\e[1;34m"
+           col_grn="\e[1;32m" 
+           col_red="\e[1;31m"
+           col_pur="\e[1;35m"
+           col_yel="\e[1;33m"
+           end_col="\e[0m";;
+    *) col_blu="";col_grn="";col_red=""
+       col_pur="";col_yel="";end_col="";;
+  esac
+  v_echo "d COLORS:$color, OS:$tgt_os ${col_red}RED${end_col}${col_yel}YEL${end_col}${col_grn}GRN${end_col}${col_blu}BLU${end_col}${col_pur}PUR${end_col}"
+}
+
 v_echo() {
   # Verbose echo with colors helper function
+  # Now backwards compatible with Bash 3
+  # Checks verbosity level, followed by msg type
+  # Selects which msg type/format is allowed at which verbosity level
   type="${*%% *}";msg="$(echo $*|cut -d' ' -f2-)"
-  #v_echo "d Type:[$type] Msg:[$msg] Color:[$color] Verbose:[$verbose]"
-  if [[ "$color" -gt 0 ]];then # Screen then color, else nope
-    case $verbose in
-      0|1|2|3)case $type in
-        f) echo -e "\1Xb[01;31m[-]\1Xb[0m $msg";; # fail/red
-        i) echo -e "\1Xb[01;34m[*]\1Xb[0m $msg";; # info/blue
-        r) echo -e "$msg";; # raw/no formatting
-        esac;;&
-      1|2|3)case $type in
-        w) echo -e "\1Xb[01;33m[!]\1Xb[0m $msg";; # warn/yellow
-        esac;;&
-      2|3)case $type in
-        I) echo -e "\1Xb[01;34m[*] $msg\1Xb[0m";; # Extra level 3 info/blue
-        s) echo -e "\1Xb[01;32m[+]\1Xb[0m $msg";; # success/green
-        esac;;&
-      3)case $type in
-        d) echo -e "\1Xb[01;35m[d]\1Xb[0m $msg";; # debug/purple
-        esac;;
-    esac
-  else
-    case $verbose in
-      0|1|2|3)case $type in
-          f) echo "[-] $msg";;
-          i) echo "[*] $msg";;
-          w) echo "[!] $msg";;
-        esac;;&
-     2|3)case $type in
-          I) echo "[*] $msg";;
-          s) echo "[+] $msg";;
-          d) echo "[d] $msg";;
-          *) echo "$msg";;
-        esac;;
-    esac
-  fi
+  local v="$verbose"
+  # echo ":: Type:[$type] Msg:[$msg] Color:[$color] Verbose:[$v]"
+  [[ -z "$type" ]] && type="d" # If type was not found, set it to debug
+  if (( v >= 3 ));then # verbose 3 or greater
+   [[ $(echo finrwWFISsd|grep "$type") ]] && ve_print $type $msg # Echo out the msg types allowed at this verbosity and search for match
+  elif (( v <= 3 )) && (( v >= 2 ));then # verbose 2 or greater
+   [[ $(echo finrwWFISs|grep "$type") ]] && ve_print $type $msg
+  elif (( v <= 3 )) && (( v >= 1 ));then # verbose 1 or greater
+   [[ $(echo finrwWF|grep "$type") ]] && ve_print $type $msg
+  elif (( v <= 3 )) && (( v >= 0 ));then # verbose 0 or greater
+   [[ $(echo finrF|grep "$type") ]] && ve_print $type $msg
+  fi 
+}
+
+ve_print() {
+  # Verbose echo print handler
+  # Does the actual formatting and printing to stdout given msg type and msg
+  type="$1";shift;msg="$*"
+  case $type in
+    f) echo -e "${col_red}[-]${end_col} $msg";; # fail/red
+    i) echo -e "${col_blu}[*]${end_col} $msg";; # info/blue
+    n) echo -ne "$msg";; # raw/no formatting/no new-line
+    r) echo -e "$msg";; # raw/no formatting
+    w) echo -e "${col_yel}[!]${end_col} $msg";; # warn/yellow
+    W) echo -e "${col_yel}[!] $msg${end_col}";; # warn/yellow - whole line
+    F) echo -e "${col_red}[-] $msg${end_col}";; # fail/red - whole line
+    I) echo -e "${col_blu}[*] $msg${end_col}";; # Extra level 3 info/blue - whole line
+    S) echo -e "${col_grn}[+] $msg${end_col}";; # success/green
+    s) echo -e "${col_grn}[+]${end_col} $msg";; # success/green
+    d) echo -e "${col_pur}[d]${end_col} $msg";; # debug/purple
+  esac
 }
 
 e_check() {
   # Error checking helper function
-  err="$(echo $1|cut -d' ' -f1)"
-  emsg="$(echo $1|cut -d' ' -f2-)"
-  v_echo "d e_check $err $emsg"
+  # Checks if given exit code is greater than 0,
+  # then notifies with a message
+  # called with: e_check "<EXIT_CODE> <MESSAGE>" <- note the double quotes
+  local err="$(echo $1|cut -d' ' -f1)"
+  local msg="$(echo $1|cut -d' ' -f2-)"
+  v_echo "d e_check $err $msg"
   if [ "$err" -gt 0 ];then
-    v_echo "f [ERROR]: $err with $emsg"
+    v_echo "f [ERROR]: $err with $msg"
   else
-    v_echo "s [GO${err}D]: with $emsg"
+    v_echo "s [GO${err}D]: with $msg"
   fi
 }
 
@@ -321,7 +357,7 @@ strip_cat() {
   v_echo "d strip_cat File:$f Line:$l"
   f_check $f e !exit
   sed "/^#/d;/^\;/d;/^$/d;" $f | tail -${l}
-  e_check $? strip_cat $f
+  e_check "$? strip_cat $f"
 }
 
 stat_cat() {
@@ -407,9 +443,9 @@ exit 0
   # If you have a simple test []&&|| be sure to add "$stdout" to the first test block
 << EoF
 _DATA_
-find.uid::find / -perm +4000 -uid 0::
+find.suid::find / -perm +4000 -uid 0::
 find.writable.dir::find / -writable -type d::
-find.writable.etc::find /etc/ -writable::
+find.writable.etc::find /etc -writable -type f::
 find.dirwalk::find /::
 hw.cpu::cat /proc/cpuinfo::
 hw.dmi::dmidecode|grep -i "ser\|chas\|manu\|prod\|uuid"|sort -u::
@@ -417,19 +453,19 @@ hw.drives.df::df -h::
 hw.drives.du::du -h --max-depth=1 /::
 hw.drives.fdisk::fdisk -l::
 hw.drives.fstab::strip_cat /etc/fstab:cat /etc/fstab:
-hw.drives.fstab-uuid::for x in \$(grep "^UUID" /etc/fstab|cut -d" " -f1|cut -d= -f2);do echo -n "UUID $x = ";blkid -U $x;done::
-hw.drives.lvm::for x in pvdisplay vgdisplay lvdisplay;do echo $x;$x;line;done::
+hw.drives.fstab.uuid::for x in \$(grep "^UUID" /etc/fstab|cut -d" " -f1|cut -d= -f2);do echo -n "UUID $x = ";blkid -U $x;done::
+hw.drives.lvm::for x in pvdisplay vgdisplay lvdisplay;do echo [*] $x;$x;line;done::
 hw.drives.mount::mount::
 hw.drives.proc::cat /proc/mounts::
 hw.export::strip_cat /etc/exports:cat /etc/exports:
 hw.lshw::lshw -quiet::
-hw.mem::cat /proc/meminfo::
-hw.mem::free -m::
+hw.mem.proc::cat /proc/meminfo::
+hw.mem.free::free -m::
 hw.pci::lspci -v::
 hw.usb::lsusb -v::
 id.time.date::date::
 id.getuid::id::
-id.getpid::ps -ef|grep $$|grep -v grep|head -1|tr -s [\:space\:]::
+id.getpid::ps -ef|grep $$|grep -v grep|head -1|tr -s [\:space\:]|cut -d" " -f2::
 id.getpid.parent::ps -ef|grep \$(ps -ef|grep $$|tr -s [\:space\:]|cut -d" " -f3|head -1)|tr -s [\:space\:]::
 id.pwd::pwd::
 id.path::echo $PATH::
@@ -444,7 +480,7 @@ net.config.if:bsd:cat /etc/if*::
 net.config.interfaces:debian:strip_cat /etc/network/interfaces:cat /etc/network/interfaces:
 net.config.ifcfg:redhat:strip_cat /etc/networking/syslog/if-cfg*:cat /etc/networking/syslog/if-cfg*:
 net.dns.resolv::strip_cat /etc/resolv.conf:cat /etc/resolv.conf:
-net.host::for x in \$(ls /etc/host*);do stat $x;e_check $? $x;echo;cat $x;line;done::
+net.host::for x in \$(ls /etc/host*);do stat $x;e_check "$? $x";echo;cat $x;line;done::
 net.hw::for x in \$(ifconfig -a|grep "encap"|cut -d" " -f1);do ethtool $x;ethtool -i $x;done::
 net.ip::ifconfig -a::
 net.ip::ip add::
