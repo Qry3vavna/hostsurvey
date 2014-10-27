@@ -31,7 +31,7 @@ initialize() {
   name="::Qry3v@vna~*" # Default reporter's name
   print_screen=0 # Don't print to screen, actually run the commands
   # Stuff that's printed out to make pretty...
-  header_top="#==============================================================================#"
+  header_top="#==========================================================================#"
   header_main_L="#=====================\ "
   header_main_R=" /==#"
   header_bot="#======================\_ "
@@ -213,7 +213,7 @@ set_colors(){
   col_select="$tgt_os"
   [ "$color" == 0 ] && col_select="nocolor" 
   case $col_select in
-    *osx*) col_blu=$'\e[01;34m'
+    *osx*|*bsd*) col_blu=$'\e[01;34m'
            col_grn=$'\e[01;32m' 
            col_red=$'\e[01;31m'
            col_pur=$'\e[01;35m'
