@@ -1,4 +1,3 @@
-#!/bin/bash
 #!/usr/bin/env bash
 # A host survey script for Unix systems, though tested on Linux
 # Used to identify all sorts of things on a box with the help of
