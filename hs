@@ -19,7 +19,7 @@ main() {
 
 initialize() {
   # Setup shop
-  version='0.9.7 OCTOBERFEST ::Qry3v@vna~*'
+  version='0.9.8 OCTOBERFEST ::Qry3v@vna~*'
   verbose=0
   identify=0
   color=1
@@ -115,8 +115,8 @@ identify() {
   for tool in sed grep stat cat tr;do
     which $tool 2>&1 >/dev/null
     e_check "$? locating tool $tool"
-    $(which $tool) --version 2>/dev/null|grep GNU 2>&1 >/dev/null
-    e_check "$? tool $tool GNU check"
+    #$(which $tool) --version 2>/dev/null|grep GNU 2>&1 >/dev/null
+    #e_check "$? tool $tool GNU check"
   done
   detect_os
   set_colors
@@ -213,12 +213,12 @@ set_colors(){
   col_select="$tgt_os"
   [ "$color" == 0 ] && col_select="nocolor" 
   case $col_select in
-    *osx*) col_blu="\1Xb[01;34m"
-           col_grn="\1Xb[01;32m" 
-           col_red="\1Xb[01;31m"
-           col_pur="\1Xb[01;35m"
-           col_yel="\1Xb[01;33m"
-           end_col="\1Xb[0m";;
+    *osx*) col_blu=$'\e[01;34m'
+           col_grn=$'\e[01;32m' 
+           col_red=$'\e[01;31m'
+           col_pur=$'\e[01;35m'
+           col_yel=$'\e[01;33m'
+           end_col=$'\e[0m';;
     *lin*) col_blu="\e[1;34m"
            col_grn="\e[1;32m" 
            col_red="\e[1;31m"
@@ -465,7 +465,7 @@ hw.pci::lspci -v::
 hw.usb::lsusb -v::
 id.time.date::date::
 id.getuid::id::
-id.getpid::ps -ef|grep $$|grep -v grep|head -1|tr -s [\:space\:]|cut -d" " -f2::
+id.getpid::echo -n "PID\: ";ps -ef|grep $$|grep -v grep|head -1|tr -s [\:space\:]|cut -d" " -f2::
 id.getpid.parent::ps -ef|grep \$(ps -ef|grep $$|tr -s [\:space\:]|cut -d" " -f3|head -1)|tr -s [\:space\:]::
 id.pwd::pwd::
 id.path::echo $PATH::
