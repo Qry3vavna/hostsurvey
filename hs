@@ -4,7 +4,6 @@
 # GNU core utilities like grep, sed, cat, tr & others.
 # Ran locally on a system, optionally select a subset of commands.
 # Can also print out the commands for other systems vs running them.
-# Requires Bash v4+ for now, due to some of the methods used.
 
 main() {
   # Main loop to start it all
@@ -157,20 +156,21 @@ detect_os() {
     res="$(parse_cmd os)"
   fi
   case $(echo $res|tr [:upper:] [:lower:]) in
-    *aix*) tgt_os="sysv/bsd/aix";;
+    *aix*) tgt_os="sysv/aix";;
     *android*) tgt_os="linux/android";;
     arch*) tgt_os="linux/arch";;
     *centos*) tgt_os="linux/redhat/centos";;
     *cygwin*) tgt_os="linux/cygwin";; # Windows
-    *darwin*|*osx*) tgt_os="bsd/osx";;
+    *darwin*|*osx*) tgt_os="bsd/mach/osx";;
     *debian*) tgt_os="linux/debian";;
     *dragonfly*) tgt_os="bsd/dragonfly";;
     *fedora*) tgt_os="linux/redhat/fedora";;
     *freebsd*) tgt_os="bsd/freebsd";;
     *gentoo*) tgt_os="linux/gentoo";;
-    *hp-ux*) tgt_os="sysv/bsd/hp-ux";;
+    *hp-ux*) tgt_os="sysv/hp-ux";;
+    *irix*) tgt_os="sysv/bsd/irix";;
     *knoppix*) tgt_os="linux/debian/knoppix";;
-    *mach*|*hurd*) tgt_os="bsd/gnu/hurd";;
+    *mach*|*hurd*) tgt_os="bsd/mach/hurd";;
     *mandrake*) tgt_os="linux/redhat/mandrake";;
     *mingw*) tgt_os="linux/mingw";; # Windows
     *minix*) tgt_os="posix/minix";;
@@ -183,7 +183,7 @@ detect_os() {
     *solaris*) tgt_os="sysv/bsd/solaris";;
     *sunos*) tgt_os="bsd/sunos";;
     *suse*) tgt_os="linux/slackware/suse";;
-    *true64*) tgt_os="bsd/hp-alpha";;
+    *true64*) tgt_os="sysv/mach/hp-alpha";;
     *ubuntu*) tgt_os="linux/debian/ubuntu";;
     *windows*) tgt_os="linux/win-bash";; # Windows
     *linux*) tgt_os="linux";; # Artificial fall through
@@ -488,7 +488,8 @@ net.stat::netstat -auntp::
 os.banner.motd::strip_cat /etc/motd:cat /etc/motd:
 os.banner.issue::strip_cat /etc/issue:cat /etc/issue:
 os.boot:linux:cat /proc/cmdline::
-os.hostname::hostname -f::
+os.hostname:linux:hostname -f::
+os.hostname:sysv:hostname::
 os.initab.fcheck:linux:strip_cat /etc/inittab:cat /etc/inittab:
 os.install-date::stat -c %z /var/log/installer/syslog:
 os.namefile::cat /etc/hostname*::
