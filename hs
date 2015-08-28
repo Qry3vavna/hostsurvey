@@ -501,6 +501,8 @@ os.ver.lsb::lsb_release -a::
 os.ver.ostype::echo $OSTYPE::
 os.ver.proc::cat /proc/version::
 os.ver.rel::cat /etc/*release*::
+sec.virt.lxc::cat /proc/1/cgroup::
+sec.virt.vmw::dmidecode|grep -i "virt"::
 sec.fw.arptables::if [[ \$(lsmod|grep arpt) ]];then arptables -L -v -n $stdout;else echo arptables not loaded;fi::
 sec.fw.ebtables::if [[ \$(lsmod|grep ebta) ]];then ebtables -L $stdout;else echo ebtables not loaded;fi::
 sec.fw.iptables::if [[ \$(lsmod|grep ip_t) ]];then for x in filter mangle nat raw;do echo "[*] Type\: $x";iptables -t $x -L -n -v;line;done;else echo iptables not loaded;fi::
