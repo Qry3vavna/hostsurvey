@@ -20,25 +20,25 @@ Can also print out the commands for other systems vs running them.
 ------------------
 
 ### USAGE: 
-`./hs \<options\>`
+`./hs <options>`
 
 ### OPTIONS:
-| Args        | What it does           |
-|:------------- |:-------------|
+ Args           | What it does           
+:---- |---
 | `--`      | Stop the press, no more argument parsing please |
-|`-h  --help`| This cruft...(help page)|
-|`-i  --initial  -1`| 1st Run basic identification commands|
-|`-k --key <word>`| Sets module category to search, aka net or id or os.uname|
-|`-l --list`| Lists all modules available, category:os:command|
-|`-n --name <name>`| Sets name used in output of full survey report|
+|`-h`<br>`--help`| This cruft...(help page)|
+|`-i`<br>`-1`<br>`--initial`| 1st Run basic identification commands|
+|`-k`<br>`--key <word>`| Sets module category to search, aka net or id or os.uname|
+|`-l`<br>`--list`| Lists all modules available, category:os:command|
+|`-n`<br>`--name <name>`| Sets name used in output of full survey report|
 |`--no-color`| Turn off the pretty colors :(|
 |`--os <os>`|Select OS architecture instead of autodetect. Used to force an OS if autodetect fails, or used with [-p] to print out the commands, when a remote system does not run bash.|
-|`-o --out <file>`|Sets the ouput file to save the report to, else it's to the screen (STDOUT). If no file name given, this defaults to out_$DateTime. A given file will be appended to if it already exists.|
-|`-p --print`| Prints the commands to the screen instead of running them.  Useful for a quick copy/paste of a set of commands.|
+|`-o`<br>`--out <file>`|Sets the ouput file to save the report to, else it's to the screen (STDOUT). If no file name given, this defaults to out_$DateTime. A given file will be appended to if it already exists.|
+|`-p`<br>`--print`| Prints the commands to the screen instead of running them.  Useful for a quick copy/paste of a set of commands.|
 |`--print-self`| Prints this script in a format to easily copy then paste in a remote shell, minus the print-self function|
-|`-q --quiet`| Quiet, only print raw results, no info or headers (deal with it!)|
-|`-v --verbose`| Increases verbosity, a little more output. 1x more headers, 2x exit codes, 3x debug mode|
-|`-V --version`| Prints versions and quits|
+|`-q`<br>`--quiet`| Quiet, only print raw results, no info or headers (deal with it!)|
+|`-v`<br>`--verbose`| Increases verbosity, a little more output. 1x more headers, 2x exit codes, 3x debug mode|
+|`-V`<br>`--version`| Prints versions and quits|
 
 ------------------------
 ### EXAMPLES:
